@@ -251,15 +251,22 @@ void GraphicsContext::BeginLayer(sk_sp<cc::ColorFilter> color_filter,
   BeginLayer(flags);
 }
 
-void GraphicsContext::BeginLayer(sk_sp<PaintFilter> image_filter) {
+void GraphicsContext::BeginLayer(sk_sp<PaintFilter> image_filter,
+                                 const gfx::RectF* bounds) {
   cc::PaintFlags flags;
   flags.setImageFilter(std::move(image_filter));
-  BeginLayer(flags);
+  BeginLayer(flags, bounds);
 }
 
-void GraphicsContext::BeginLayer(const cc::PaintFlags& flags) {
+void GraphicsContext::BeginLayer(const cc::PaintFlags& flags,
+                                 const gfx::RectF* bounds) {
   DCHECK(canvas_);
-  canvas_->saveLayer(flags);
+  if (bounds) {
+    const SkRect sk_bounds = gfx::RectFToSkRect(*bounds);
+    canvas_->saveLayer(sk_bounds, flags);
+  } else {
+    canvas_->saveLayer(flags);
+  }
 
 #if DCHECK_IS_ON()
   ++layer_count_;
@@ -539,12 +546,13 @@ void GraphicsContext::DrawEmphasisMarksInternal(
   });
 }
 
+// This function is not used if TextCombineEmphasisNG flag is enabled.
 void GraphicsContext::DrawEmphasisMarks(const Font& font,
-                                        const TextRunPaintInfo& text_info,
+                                        const TextRun& run,
                                         const AtomicString& mark,
                                         const gfx::PointF& point,
                                         const AutoDarkMode& auto_dark_mode) {
-  DrawEmphasisMarksInternal(font, text_info, mark, point, auto_dark_mode);
+  DrawEmphasisMarksInternal(font, run, mark, point, auto_dark_mode);
 }
 
 void GraphicsContext::DrawEmphasisMarks(const Font& font,
@@ -555,15 +563,13 @@ void GraphicsContext::DrawEmphasisMarks(const Font& font,
   DrawEmphasisMarksInternal(font, text_info, mark, point, auto_dark_mode);
 }
 
-void GraphicsContext::DrawBidiText(
-    const Font& font,
-    const TextRunPaintInfo& run_info,
-    const gfx::PointF& point,
-    const AutoDarkMode& auto_dark_mode,
-    Font::CustomFontNotReadyAction custom_font_not_ready_action) {
+void GraphicsContext::DrawBidiText(const Font& font,
+                                   const TextRun& run,
+                                   const gfx::PointF& point,
+                                   const AutoDarkMode& auto_dark_mode) {
   DrawTextPasses([&](const cc::PaintFlags& flags) {
-    if (font.DrawBidiText(canvas_, run_info, point,
-                          custom_font_not_ready_action,
+    if (font.DrawBidiText(canvas_, TextRunPaintInfo(run), point,
+                          Font::kDoNotPaintIfFontNotReady,
                           DarkModeFlags(this, auto_dark_mode, flags),
                           printing_ ? Font::DrawType::kGlyphsAndClusters
                                     : Font::DrawType::kGlyphsOnly)) {

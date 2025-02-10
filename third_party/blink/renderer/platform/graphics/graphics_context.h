@@ -71,7 +71,6 @@ class PaintController;
 class Path;
 class StrokeData;
 class StyledStrokeData;
-struct TextRunPaintInfo;
 
 // Tiling parameters for the DrawImageTiled() method.
 struct ImageTilingInfo {
@@ -403,7 +402,7 @@ class PLATFORM_EXPORT GraphicsContext {
                 const AutoDarkMode& auto_dark_mode);
 
   void DrawEmphasisMarks(const Font&,
-                         const TextRunPaintInfo&,
+                         const TextRun&,
                          const AtomicString& mark,
                          const gfx::PointF&,
                          const AutoDarkMode& auto_dark_mode);
@@ -413,12 +412,10 @@ class PLATFORM_EXPORT GraphicsContext {
                          const gfx::PointF&,
                          const AutoDarkMode& auto_dark_mode);
 
-  void DrawBidiText(
-      const Font&,
-      const TextRunPaintInfo&,
-      const gfx::PointF&,
-      const AutoDarkMode& auto_dark_mode,
-      Font::CustomFontNotReadyAction = Font::kDoNotPaintIfFontNotReady);
+  void DrawBidiText(const Font&,
+                    const TextRun&,
+                    const gfx::PointF&,
+                    const AutoDarkMode& auto_dark_mode);
 
   // BeginLayer()/EndLayer() behave like Save()/Restore() for CTM and clip
   // states. Apply opacity, blend mode, filter when the layer is composited on
@@ -426,7 +423,7 @@ class PLATFORM_EXPORT GraphicsContext {
   void BeginLayer(float opacity = 1.0f);
   void BeginLayer(SkBlendMode);
   void BeginLayer(sk_sp<cc::ColorFilter>, const SkBlendMode* = nullptr);
-  void BeginLayer(sk_sp<PaintFilter>);
+  void BeginLayer(sk_sp<PaintFilter>, const gfx::RectF* bounds = nullptr);
   void EndLayer();
 
   // Instead of being dispatched to the active canvas, draw commands following
@@ -525,7 +522,7 @@ class PLATFORM_EXPORT GraphicsContext {
   template <typename DrawTextFunc>
   void DrawTextPasses(const DrawTextFunc&);
 
-  void BeginLayer(const cc::PaintFlags&);
+  void BeginLayer(const cc::PaintFlags&, const gfx::RectF* bounds = nullptr);
 
   // SkCanvas wrappers.
   void ClipRRect(const SkRRect&,
